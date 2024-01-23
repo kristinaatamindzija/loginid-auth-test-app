@@ -1,4 +1,4 @@
-# LOGIN-AUTH-TEST-APP
+## LOGINID-AUTH-TEST-APP
 
 This example demonstrates user authentication relying on LoginID SDK.
 
@@ -11,8 +11,11 @@ Generate a .env file and place it at the root of the example. Alternatively, you
 PORT is optional and will default to 3000 if not provided.
 
 LOGINID_APP_ID=<APPLICATION_ID>
+
 LOGINID_BASE_URL=<TENANT_BASE_URL>
+
 PORT=<PORT>
+
 
 ## How to Run
 You can run either with NPM
