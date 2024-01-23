@@ -10,11 +10,11 @@ Generate a .env file and place it at the root of the example. Alternatively, you
 
 PORT is optional and will default to 3000 if not provided.
 
-LOGINID_APP_ID=<APPLICATION_ID>
+LOGINID_APP_ID= <APPLICATION_ID>
 
-LOGINID_BASE_URL=<TENANT_BASE_URL>
+LOGINID_BASE_URL= <TENANT_BASE_URL>
 
-PORT=<PORT>
+PORT= <PORT>
 
 
 ## How to Run
@@ -22,5 +22,6 @@ You can run either with NPM
 The following commands will install the dependencies and run the example in dev mode.
 
 npm install
+
 npm run dev
 
