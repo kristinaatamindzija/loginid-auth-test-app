@@ -1,34 +1,35 @@
-import {
-  LoginIdConfiguration,
-  LoginIdEmail,
-  LoginIdPasskey,
-} from "@loginid/web-sdk";
 import { promisify } from "util";
 import { getPublicKeyFromStorage, storePublicKey } from "../storage/storage";
-import { getPublicKey } from "../environment/auth";
-const jwt = require("jsonwebtoken");
+import { urls } from "../utils/loginID.api/loginID.urls";
+import {
+  beginSiginProcess,
+  completeSigninProcess,
+  getPublicKey,
+  sendVerificationEmail,
+} from "../utils/loginID.api/loginID.api";
+import WebSocket from "ws";
+
 import * as dotenv from "dotenv";
 dotenv.config();
 
-const baseUrl = process.env.BASE_URL ?? "";
-const appID = process.env.APP_ID ?? "";
+const jwt = require("jsonwebtoken");
 
-const loginIdConfig = new LoginIdConfiguration(baseUrl, appID);
+const SINGIN_EXPIRED_TIME = process.env.SINGIN_EXPIRED_TIME;
 
-const lidEmail = new LoginIdEmail(loginIdConfig);
+const signinSocketUrl = `${process.env.BASE_SOCKET_URL}${urls.signin}`;
 
 interface AuthService {
-  login(username: string): Promise<any>;
-  signinWithEmail(username: string): Promise<string>;
-  validateAuthToken(token: string): Promise<any>;
-  signInWithPasskey(username: string): Promise<any>;
+  signInWithEmail(email: string): Promise<any>;
+  getAccessToken(username: string): Promise<string>;
+  validateAccessToken(accessToken: string): Promise<any>;
+  //signInWithPasskey(username: string): Promise<any>;
 }
 
-async function login(username: string): Promise<any> {
-  let token = await signinWithEmail(username);
+async function signInWithEmail(email: string): Promise<any> {
+  let accessToken = await getAccessToken(email);
 
   try {
-    const user = validateAuthToken(token);
+    const user = validateAccessToken(accessToken);
     console.log(user);
 
     return user;
@@ -38,38 +39,65 @@ async function login(username: string): Promise<any> {
   }
 }
 
-async function signinWithEmail(username: string): Promise<string> {
-  let token: string = "";
-
+async function getAccessToken(email: string): Promise<string> {
   try {
-    const result = await lidEmail.signinWithEmail(username);
+    // Step 1: Begin email verification
+    const { session_id } = await beginSiginProcess();
 
-    const { auth_data } = result;
+    // Step 2: Initiate email verification
+    await sendVerificationEmail(session_id, email);
 
-    token = auth_data.token;
-    return token;
-  } catch (error) {
-    console.log(error);
-  }
-  return token;
-}
+    // Step 3: Connect to WebSocket for real-time updates
+    const access_token = verifyUserByEmail(session_id);
 
-async function signInWithPasskey(username: string) {
-  const loginIdConfig = new LoginIdConfiguration(baseUrl, appID);
-  let lid = new LoginIdPasskey(loginIdConfig);
-  try {
-    const result = await lid.signinWithPasskey(username);
-
-    const { auth_data } = result;
-
-    return auth_data.token;
-  } catch (e) {
-    console.log(e);
-    throw new Error("Please authenticate.");
+    return access_token;
+  } catch (error: any) {
+    console.log("Signin faild with error :", error);
+    throw new Error(error);
   }
 }
 
-async function validateAuthToken(token: string): Promise<any> {
+async function verifyUserByEmail(session_id: string) {
+  const startTime = Date.now();
+  const webSocketUrl = `${signinSocketUrl}/${session_id}/credentials/email/wait`;
+
+  const ws = new WebSocket(webSocketUrl);
+  return new Promise<string>((resolve, reject) => {
+    ws.on("open", () => {
+      console.log("WebSocket connection opened");
+    });
+
+    ws.on("message", async (message: any) => {
+      console.log("WebSocket message received:", message);
+
+      const parsedMessage = JSON.parse(message.toString());
+
+      if (parsedMessage.is_authenticated === true) {
+        console.log("Email verification is complete");
+
+        ws.close();
+
+        // Step 4: Call the "complete" endpoint
+        const access_token = await completeSigninProcess(session_id);
+        resolve(access_token);
+      }
+    });
+
+    const checkTimeout = setInterval(() => {
+      const currentTime = Date.now();
+      const elapsedTime = currentTime - startTime;
+
+      if (elapsedTime >= Number(SINGIN_EXPIRED_TIME)) {
+        ws.close();
+
+        clearInterval(checkTimeout);
+        reject(new Error("Email verification timeout"));
+      }
+    }, 1000);
+  });
+}
+
+async function validateAccessToken(token: string): Promise<any> {
   let publicKey = getPublicKeyFromStorage();
 
   if (!publicKey) {
@@ -81,14 +109,12 @@ async function validateAuthToken(token: string): Promise<any> {
     }
   }
 
-  const user = promisify(jwt.verify)(token, publicKey);
-
-  return user;
+  return promisify(jwt.verify)(token, publicKey);
 }
 
 export const authService: AuthService = {
-  login,
-  signinWithEmail,
-  validateAuthToken,
-  signInWithPasskey,
+  signInWithEmail,
+  getAccessToken,
+  validateAccessToken,
+  //signInWithPasskey,
 };

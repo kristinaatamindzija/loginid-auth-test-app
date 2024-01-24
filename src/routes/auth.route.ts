@@ -5,23 +5,23 @@ import { asyncErrorHandler } from "../utils/util";
 const authRouter: Router = Router();
 
 authRouter.post(
-  "/signiWithEmail",
+  "/signinWithEmail",
   asyncErrorHandler(async (request: Request, response: Response) => {
     const { username } = request.body;
-    const user = await authService.login(username);
+    const user = await authService.signInWithEmail(username);
 
     return response.status(200).json(user);
   })
 );
 
-authRouter.post(
-  "/signinWithPasskey",
-  asyncErrorHandler(async (request: Request, response: Response) => {
-    const { username } = request.body;
-    const auth_token = await authService.signInWithPasskey(username);
+// authRouter.post(
+//   "/signinWithPasskey",
+//   asyncErrorHandler(async (request: Request, response: Response) => {
+//     const { username } = request.body;
+//     const auth_token = await authService.signInWithPasskey(username);
 
-    return response.status(200).json(auth_token);
-  })
-);
+//     return response.status(200).json(auth_token);
+//   })
+// );
 
 export { authRouter };
