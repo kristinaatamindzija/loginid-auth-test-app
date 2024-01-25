@@ -1,8 +1,6 @@
 import axios from "axios";
 import * as dotenv from "dotenv";
-
 import { urls } from "./loginID.urls";
-import { url } from "inspector";
 const jwksClient = require("jwks-rsa");
 
 dotenv.config();
@@ -12,6 +10,7 @@ const baseURL = process.env.BASE_URL;
 
 const signinUrl = urls.signin;
 const getPublicKeyUrl = urls.getPublicKey;
+
 const APP_ID = process.env.APP_ID;
 const MFA_ID = process.env.MFA_ID;
 
@@ -63,14 +62,13 @@ async function getPublicKey(): Promise<string> {
     jwksUri: `${baseURL}${getPublicKeyUrl}`,
   });
 
-  console.log(`${baseURL}${getPublicKeyUrl}`);
-
   return new Promise<string>((resolve, reject) => {
     client.getSigningKey(kid, (e: any, key: any) => {
       if (e) {
         reject(e);
       } else {
         console.log("KEY " + key.publicKey);
+
         resolve(key.publicKey);
       }
     });

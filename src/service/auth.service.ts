@@ -6,9 +6,8 @@ import {
   completeSigninProcess,
   getPublicKey,
   sendVerificationEmail,
-} from "../utils/loginID.api/loginID.api";
+} from "../utils/loginID.api/loginID.service";
 import WebSocket from "ws";
-
 import * as dotenv from "dotenv";
 dotenv.config();
 

@@ -12,7 +12,7 @@ export async function requireAuthentication(
   }
 
   try {
-    const user = authService.validateAuthToken(token);
+    const user = authService.validateAccessToken(token);
     res.locals = { user };
     next();
   } catch (err) {
