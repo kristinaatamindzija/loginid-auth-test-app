@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { authService } from "../service/auth.service";
+import { authService } from "../service/auth/auth.service";
 
 export async function requireAuthentication(
   req: Request,
